@@ -77,6 +77,5 @@ public class Citta {
 	public String toString() {
 		return nome;
 	}
-	
 
 }

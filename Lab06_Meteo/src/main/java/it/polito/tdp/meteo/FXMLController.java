@@ -40,14 +40,16 @@ public class FXMLController {
 
     @FXML
     void doCalcolaSequenza(ActionEvent event) {
-
+    	int meseScelto = this.boxMese.getValue();
+    	String risultato = model.trovaSequenza(meseScelto);
+    	this.txtResult.appendText(risultato);
     }
 
     @FXML
     void doCalcolaUmidita(ActionEvent event) {
     	int meseScelto = this.boxMese.getValue();
     	String risultato = model.getUmiditaMedia(meseScelto);
-    	this.txtResult.setText(risultato);
+    	this.txtResult.appendText(risultato);
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
