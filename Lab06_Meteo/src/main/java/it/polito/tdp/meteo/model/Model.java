@@ -10,8 +10,11 @@ import it.polito.tdp.meteo.DAO.MeteoDAO;
 public class Model {
 	
 	MeteoDAO dao = new MeteoDAO();
-	List<String> soluzioneMigliore;
+	List<Citta> soluzioneMigliore;
 	int costoMinimoCorrente=500000;
+	
+	List<Citta> listaCitta;
+	int giorniStessaCitta=0;
 	
 	private final static int COST = 100;
 	private final static int NUMERO_GIORNI_CITTA_CONSECUTIVI_MIN = 3;
@@ -44,9 +47,9 @@ public class Model {
 	// of course you can change the String output with what you think works best
 	public String trovaSequenza(int mese) {
 		
-		List<String> parziale = new LinkedList<String>();
+		List<Citta> parziale = new LinkedList<Citta>();
 		
-		List<Citta> listaCitta = new LinkedList<Citta>();
+		listaCitta = new LinkedList<Citta>();
 		Citta Torino = new Citta("Torino",dao.getAllRilevamentiLocalitaMese(mese, "Torino"));
 		Citta Milano = new Citta("Milano",dao.getAllRilevamentiLocalitaMese(mese, "Milano"));
 		Citta Genova = new Citta("Genova",dao.getAllRilevamentiLocalitaMese(mese, "Genova"));
@@ -54,63 +57,64 @@ public class Model {
 		listaCitta.add(Milano);
 		listaCitta.add(Genova);
 		
-		soluzioneMigliore = new LinkedList<String>();
+		soluzioneMigliore = new LinkedList<Citta>();
 		
 		int livello=0;
 		int costo=0;
-		
-		recursive(parziale,dao.getRilevamentiMese(mese),listaCitta,livello,costo);
+					
+		recursive(parziale,livello,costo, giorniStessaCitta);
 		
 		String risultato="";
-		for(String s: soluzioneMigliore)
-			risultato = risultato +s+" ";
+		for(Citta s: soluzioneMigliore)
+			risultato = risultato +s.getNome()+" ";
 		
 		return risultato;
 	}
 	
-	public void recursive(List<String> parziale,List<Rilevamento> rilevamenti, List<Citta> listaCitta, int livello, int costo) {
+	public void recursive(List<Citta> parziale, int livello, int costo,int giorniConsecutiviCitta) {
 		
 		// Caso terminale
 		if(livello==15) {
 			if(costo<costoMinimoCorrente) {
 				costoMinimoCorrente = costo;
-				System.out.println(costoMinimoCorrente);
-				soluzioneMigliore = new LinkedList<String>(parziale);
+				soluzioneMigliore = new LinkedList<Citta>(parziale);
 			}
 			return;
 		}
-		
-		for(Citta c : listaCitta) {
-			// Provo a inserire una citta (se valida)
-			if(c.getCounter()<=3) {
-				
-				// Calcolo il costo aggiornato
-				int nuovoCosto = costo;
-				
-				if(parziale.size()==0 || parziale.get(livello-1)!=c.getNome()) 
-					nuovoCosto=nuovoCosto+COST;
-				
-				nuovoCosto = nuovoCosto + c.getRilevamenti().get(livello).getUmidita() +c.getRilevamenti().get(livello+1).getUmidita() +c.getRilevamenti().get(livello+2).getUmidita();
+		else if(giorniConsecutiviCitta>0 && giorniConsecutiviCitta<NUMERO_GIORNI_CITTA_CONSECUTIVI_MIN) {
+			Citta c = parziale.get(livello-1);
+			c.increaseCounter();
 			
-				// Aggiungo la città alla soluzione parziale
-				List<String> nuovaParziale = new LinkedList<String>(parziale);
-				nuovaParziale.add(c.getNome());
-				nuovaParziale.add(c.getNome());
-				nuovaParziale.add(c.getNome());
-				
-				c.setCounter(c.getCounter()+3);
-				
-				recursive(nuovaParziale,rilevamenti,listaCitta, livello+3, nuovoCosto);
-				
-				// Riporto indietro il contatore
-				c.setCounter(c.getCounter()-3);
-			}
+			int nuovoCosto = costo + c.getRilevamenti().get(livello).getUmidita();
+			parziale.add(c);
+			recursive(parziale, livello+1,nuovoCosto, giorniConsecutiviCitta+1);
+			c.setCounter(c.getCounter()-1);;
+			parziale.remove(livello);
 		}
-		return;
-	}	
-	
-	/*public boolean isValida(List<String> parziale, Citta citta) {
-		
-	}*/
+		else {
+			
+			for(Citta c : listaCitta) {
+				
+				// Se la città è valida provo a inserirla
+				if(c.getCounter()<NUMERO_GIORNI_CITTA_MAX) {
+					int nuovoCosto=costo;
+					// Se la città che sto inserendo è diversa dall'ultima inserita --> azzero il contatore giorniStessaCitta
+					if(livello>0 && !parziale.get(livello-1).equals(c)) {
+						giorniConsecutiviCitta=0;
+						nuovoCosto = nuovoCosto + COST;
+					}
+					c.increaseCounter();
+					nuovoCosto = nuovoCosto + c.getRilevamenti().get(livello).getUmidita();
+					parziale.add(c);
+					recursive(parziale,livello+1,nuovoCosto,giorniConsecutiviCitta+1);
+					parziale.remove(livello);
+					c.setCounter(c.getCounter()-1);
+				}
+				
+		    }
+			
+		}
+			
+	}
 
 }
